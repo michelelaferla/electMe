@@ -1,0 +1,19 @@
+{
+  "name": "supabase-auth-onboarding",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "set-admin-role": "node scripts/set-admin-role.mjs",
+    "enroll-admin-mfa": "node scripts/enroll-admin-mfa.mjs",
+    "provision-voters": "node scripts/provision-voters.mjs",
+    "link-voters": "node scripts/link-voters.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "latest",
+    "csv-parse": "latest",
+    "csv-stringify": "latest",
+    "dotenv": "latest",
+    "qrcode-terminal": "latest"
+  }
+}
