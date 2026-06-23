@@ -1,7 +1,7 @@
-import { useSortable } from '@dnd-kit/sortable';
-import { CSS } from '@dnd-kit/utilities';
-import { GripVertical, X } from 'lucide-react';
-import type { Candidate } from '../types/domain';
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
+import {GripVertical, X} from 'lucide-react';
+import type {Candidate} from '../types/domain';
 
 type Props = { candidate: Candidate; index: number; selected: boolean; onToggle: () => void };
 
@@ -12,14 +12,17 @@ export function SortableCandidate({ candidate, index, selected, onToggle }: Prop
 
   return (
     <article ref={setNodeRef} style={style} className={`candidate ${selected ? 'selected' : 'excluded'} ${isDragging ? 'dragging' : ''}`}>
-      <button className="dragHandle" aria-label={`Move ${name}`} {...attributes} {...listeners} disabled={!selected}><GripVertical size={20}/></button>
+        <button type="button" className="dragHandle" aria-label={`Move ${name}`} {...attributes} {...listeners}
+                disabled={!selected}><GripVertical size={20}/></button>
       <img className="avatar" src={candidate.photo_url || '/candidate-placeholder.svg'} alt="" />
       <div className="candidateBody">
         <strong>{selected ? `${index + 1}. ` : ''}{name}</strong>
         <span>{candidate.profession || 'Profession not provided'}</span>
         <small>{candidate.address || 'Address not provided'}</small>
       </div>
-      <button className="toggleBtn" onClick={onToggle}>{selected ? <X size={18}/> : 'Add'}</button>
+        <button type="button" className="toggleBtn" onClick={onToggle}
+                aria-label={selected ? `Remove ${name} from ballot` : `Choose ${name}`}>{selected ? <><X
+            size={18}/> Remove</> : 'Choose'}</button>
     </article>
   );
 }
