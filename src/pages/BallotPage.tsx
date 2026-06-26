@@ -16,6 +16,17 @@ import {SortableCandidate} from '../components/SortableCandidate';
 
 type Props = { election: Election; onDone: () => void };
 
+type PartyCandidateGroup = {
+    partyId: number;
+    partyName: string;
+    partyLogoUrl?: string | null;
+    candidates: Candidate[];
+};
+
+function compareCandidates(a: Candidate, b: Candidate) {
+    return a.surname.localeCompare(b.surname) || a.first_name.localeCompare(b.first_name);
+}
+
 export function BallotPage({ election, onDone }: Props) {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
@@ -36,13 +47,32 @@ export function BallotPage({ election, onDone }: Props) {
             .catch(err => setError(err.message));
     }, [election.election_id]);
 
-  const selected = selectedIds.map(id => candidates.find(c => c.candidate_id === id)).filter(Boolean) as Candidate[];
-  const excluded = candidates.filter(c => !selectedIds.includes(c.candidate_id));
-  const partyGroups = useMemo(() => {
-    const map = new Map<string, Candidate[]>();
-    candidates.forEach(c => map.set(c.party_name, [...(map.get(c.party_name) || []), c]));
-    return [...map.entries()];
-  }, [candidates]);
+    const selected = selectedIds
+        .map(id => candidates.find(c => c.candidate_id === id))
+        .filter(Boolean) as Candidate[];
+
+    const availableGroups = useMemo<PartyCandidateGroup[]>(() => {
+        const selectedSet = new Set(selectedIds);
+        const grouped = new Map<number, PartyCandidateGroup>();
+
+        candidates
+            .filter(candidate => !selectedSet.has(candidate.candidate_id))
+            .forEach(candidate => {
+                const group = grouped.get(candidate.party_id) ?? {
+                    partyId: candidate.party_id,
+                    partyName: candidate.party_name || 'Independent / No party',
+                    partyLogoUrl: candidate.party_logo_url,
+                    candidates: []
+                };
+
+                group.candidates.push(candidate);
+                grouped.set(candidate.party_id, group);
+            });
+
+        return [...grouped.values()]
+            .map(group => ({...group, candidates: [...group.candidates].sort(compareCandidates)}))
+            .sort((a, b) => a.partyName.localeCompare(b.partyName));
+    }, [candidates, selectedIds]);
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -67,25 +97,52 @@ export function BallotPage({ election, onDone }: Props) {
 
     return <main className="page ballotPage">
         <header className="topbar">
-            <div><h1>{election.election_name}</h1><p>Candidates start unchosen. Add only the candidates you want to vote
-                for, then drag your chosen candidates into preference order.</p></div>
+            <div>
+                <h1>{election.election_name}</h1>
+                <p>Candidates start unchosen. Add only the candidates you want to vote for, then drag your chosen
+                    candidates into preference order.</p>
+            </div>
             <button type="button" onClick={onDone}>Back</button>
         </header>
+
     {error && <p className="error">{error}</p>}
-    <section className="layout"><aside className="card partyList"><h2>Candidates by party</h2>{partyGroups.map(([party, rows]) => <div className="partyGroup" key={party}><h3>{rows[0]?.party_logo_url && <img src={rows[0].party_logo_url} alt=""/>}{party}</h3>{rows.sort((a,b) => a.surname.localeCompare(b.surname)).map(c => <p key={c.candidate_id}>{c.surname}, {c.first_name}</p>)}</div>)}</aside>
-        <section className="card voteList"><h2>Your chosen preferences</h2>{selected.length === 0 &&
-            <p className="emptyState">No candidates chosen yet. Tap Choose below to add candidates to your
-                ballot.</p>}<DndContext sensors={sensors} collisionDetection={closestCenter}
-                                        onDragEnd={onDragEnd}><SortableContext items={selectedIds}
-                                                                               strategy={verticalListSortingStrategy}>{selected.map((c, i) =>
-            <SortableCandidate key={c.candidate_id} candidate={c} index={i} selected
-                               onToggle={() => toggle(c.candidate_id)}/>)}</SortableContext></DndContext>
-            {excluded.length > 0 && <><h2>Available candidates</h2>{excluded.map((c, i) => <SortableCandidate
-                key={c.candidate_id} candidate={c} index={i} selected={false}
-                onToggle={() => toggle(c.candidate_id)}/>)}</>}
+
+        <section className="card voteList">
+            <section className="chosenSection">
+                <h2>Your chosen preferences</h2>
+                {selected.length === 0 &&
+                    <p className="emptyState">No candidates chosen yet. Tap Choose below to add candidates to your
+                        ballot.</p>}
+                <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                    <SortableContext items={selectedIds} strategy={verticalListSortingStrategy}>
+                        {selected.map((c, i) => <SortableCandidate key={c.candidate_id} candidate={c} index={i} selected
+                                                                   onToggle={() => toggle(c.candidate_id)}/>)}
+                    </SortableContext>
+                </DndContext>
+            </section>
+
+            <section className="availableSection">
+                <h2>Available candidates</h2>
+                {availableGroups.length === 0 &&
+                    <p className="emptyState">All candidates have been added to your ballot.</p>}
+                {availableGroups.map(group => (
+                    <section className="availablePartyGroup" key={group.partyId}>
+                        <header className="partyHeader">
+                            {group.partyLogoUrl && <img src={group.partyLogoUrl} alt=""/>}
+                            <div>
+                                <h3>{group.partyName}</h3>
+                                <span>{group.candidates.length} candidate{group.candidates.length === 1 ? '' : 's'}</span>
+                            </div>
+                        </header>
+                        {group.candidates.map((c, i) => <SortableCandidate key={c.candidate_id} candidate={c} index={i}
+                                                                           selected={false}
+                                                                           onToggle={() => toggle(c.candidate_id)}/>)}
+                    </section>
+                ))}
+            </section>
+
             <button type="button" className="submit" disabled={submitting || selectedIds.length === 0}
                     onClick={submit}>{submitting ? 'Submitting…' : selectedIds.length === 0 ? 'Choose at least one candidate' : 'Submit final ballot'}</button>
-        </section>
     </section>
   </main>;
 }

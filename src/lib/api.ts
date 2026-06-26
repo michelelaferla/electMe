@@ -2,7 +2,7 @@ import {supabase} from './supabase';
 import type {BallotPreference, Candidate, Election, VoterProfile} from '../types/domain';
 
 export async function getMyProfile(): Promise<VoterProfile> {
-  const {data, error} = await supabase.rpc('get_my_voter_profile').single();
+    const {data, error} = await supabase.rpc('get_my_voter_profile').single();
   if (error) throw error;
   return data as VoterProfile;
 }
