@@ -1,12 +1,53 @@
 :root {
     font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #172033;
-    background: #f6f7fb;
+    color: var(--text);
+    background: var(--page-bg);
     font-size: 16px;
     line-height: 1.45;
     -webkit-text-size-adjust: 100%;
     text-size-adjust: 100%;
+
+    --page-bg: #f6f7fb;
+    --surface: #ffffff;
+    --surface-muted: #f8fafc;
+    --text: #172033;
+    --text-muted: #64748b;
+    --border: #e5e7eb;
+    --border-strong: #cbd5e1;
+    --primary: #b91c1c;
+    --primary-text: #ffffff;
+    --secondary: #111827;
+    --secondary-text: #ffffff;
+    --handle-bg: #f1f5f9;
+    --handle-text: #334155;
+    --error-bg: #fee2e2;
+    --error-text: #7f1d1d;
+    --focus: #2563eb;
+    --shadow: #0000000d;
+    --shadow-strong: #0000001a;
 }
+
+:root[data-contrast="high"] {
+    --page-bg: #000000;
+    --surface: #000000;
+    --surface-muted: #111111;
+    --text: #ffffff;
+    --text-muted: #facc15;
+    --border: #ffffff;
+    --border-strong: #ffffff;
+    --primary: #ffff00;
+    --primary-text: #000000;
+    --secondary: #ffffff;
+    --secondary-text: #000000;
+    --handle-bg: #ffffff;
+    --handle-text: #000000;
+    --error-bg: #000000;
+    --error-text: #ff8080;
+    --focus: #00ffff;
+    --shadow: transparent;
+    --shadow-strong: transparent;
+}
+
 
 * {
     box-sizing: border-box;
@@ -14,14 +55,15 @@
 
 html {
     min-height: 100%;
-    background: #f6f7fb;
+    background: var(--page-bg);
 }
 
 body {
     min-width: 320px;
+    color: var(--text);
     margin: 0;
     overflow-x: hidden;
-    background: #f6f7fb;
+    background: var(--page-bg);
 }
 
 button,
@@ -34,8 +76,8 @@ button {
     border: 0;
     border-radius: 12px;
     padding: 0.85rem 1rem;
-    background: #b91c1c;
-    color: white;
+    background: var(--primary);
+    color: var(--primary-text);
     font-weight: 800;
     cursor: pointer;
     touch-action: manipulation;
@@ -49,10 +91,10 @@ button:disabled {
 input {
     width: 100%;
     min-height: 46px;
-    border: 1px solid #cbd5e1;
+    border: 1px solid var(--border-strong);
     border-radius: 12px;
     padding: 0.85rem;
-    background: #fff;
+    background: var(--surface);
 }
 
 label {
@@ -78,15 +120,15 @@ p {
 .page {
     width: min(1200px, 100%);
     margin: 0 auto;
-    padding: max(1rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    padding: calc(max(1rem, env(safe-area-inset-top)) + 3.4rem) max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
 }
 
 .card,
 .electionCard {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--surface);
+    border: 1px solid var(--border);
     border-radius: 18px;
-    box-shadow: 0 8px 24px #0000000d;
+    box-shadow: 0 8px 24px var(--shadow);
 }
 
 .login {
@@ -108,14 +150,14 @@ p {
 }
 
 .error {
-    background: #fee2e2;
-    color: #7f1d1d;
+    background: var(--error-bg);
+    color: var(--error-text);
 }
 
 .emptyState {
-    background: #fff;
-    border: 1px dashed #cbd5e1;
-    color: #475569;
+    background: var(--surface);
+    border: 1px dashed var(--border-strong);
+    color: var(--text-muted);
 }
 
 .topbar {
@@ -134,7 +176,7 @@ p {
 
 .topbar p {
     margin: 0.35rem 0 0;
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .topbar button {
@@ -154,8 +196,8 @@ p {
     gap: 0.4rem;
     align-content: start;
     padding: 1.25rem;
-    background: #fff;
-    color: #172033;
+    background: var(--surface);
+    color: var(--text);
     text-align: left;
 }
 
@@ -164,7 +206,7 @@ p {
 }
 
 .electionCard span {
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .voteList {
@@ -188,7 +230,7 @@ p {
 }
 
 .availablePartyGroup {
-    border-top: 1px solid #e5e7eb;
+    border-top: 1px solid var(--border);
     padding-top: 1rem;
     margin-top: 0.65rem;
 }
@@ -213,7 +255,7 @@ p {
 }
 
 .partyHeader span {
-    color: #64748b;
+    color: var(--text-muted);
     font-size: 0.92rem;
 }
 
@@ -223,9 +265,9 @@ p {
     grid-template-columns: auto 56px minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.75rem;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--border);
     border-radius: 16px;
-    background: #fff;
+    background: var(--surface);
     margin: 0.6rem 0;
     padding: 0.6rem;
 }
@@ -235,7 +277,7 @@ p {
 }
 
 .candidate.excluded {
-    background: #f8fafc;
+    background: var(--surface-muted);
 }
 
 .dragHandle {
@@ -245,8 +287,8 @@ p {
     width: 44px;
     height: 44px;
     padding: 0;
-    background: #f1f5f9;
-    color: #334155;
+    background: var(--handle-bg);
+    color: var(--handle-text);
     touch-action: none;
 }
 
@@ -255,7 +297,7 @@ p {
     height: 56px;
     border-radius: 12px;
     object-fit: cover;
-    background: #e2e8f0;
+    background: var(--border);
 }
 
 .candidateBody {
@@ -272,12 +314,12 @@ p {
 
 .candidateBody span,
 .candidateBody small {
-    color: #64748b;
+    color: var(--text-muted);
 }
 
 .toggleBtn {
     min-width: 58px;
-    background: #111827;
+    background: var(--secondary);
 }
 
 .submit {
@@ -287,12 +329,58 @@ p {
     margin-top: 1rem;
     padding: 1rem;
     font-size: 1.05rem;
-    box-shadow: 0 12px 28px #0000001a;
+    box-shadow: 0 12px 28px var(--shadow-strong);
 }
+
+button:focus-visible,
+input:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+}
+
+.accessibilityToggle {
+    position: fixed;
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: max(0.75rem, env(safe-area-inset-right));
+    z-index: 20;
+    min-height: 40px;
+    padding: 0.65rem 0.9rem;
+    border: 2px solid var(--border-strong);
+    border-radius: 999px;
+    background: var(--secondary);
+    color: var(--secondary-text);
+    box-shadow: 0 8px 24px var(--shadow-strong);
+    font-size: 0.9rem;
+}
+
+:root[data-contrast="high"] .card,
+:root[data-contrast="high"] .electionCard,
+:root[data-contrast="high"] .candidate,
+:root[data-contrast="high"] .emptyState,
+:root[data-contrast="high"] input,
+:root[data-contrast="high"] .accessibilityToggle {
+    border-width: 2px;
+    box-shadow: none;
+}
+
+:root[data-contrast="high"] img {
+    background: var(--surface);
+    border: 1px solid var(--border-strong);
+}
+
 @media (max-width: 600px) {
-    .centerPage,
-    .page {
+    .accessibilityToggle {
+        left: max(0.75rem, env(safe-area-inset-left));
+        right: max(0.75rem, env(safe-area-inset-right));
+        width: auto;
+    }
+
+    .centerPage {
         padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+    }
+
+    .page {
+        padding: calc(max(0.75rem, env(safe-area-inset-top)) + 3.4rem) max(0.75rem, env(safe-area-inset-right)) max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
     }
 
     .topbar {
@@ -360,5 +448,67 @@ p {
 
     .candidateBody {
         grid-column: 3;
+    }
+}
+
+.accessibilityToolbar {
+    position: fixed;
+    top: max(0.75rem, env(safe-area-inset-top));
+    right: max(0.75rem, env(safe-area-inset-right));
+    z-index: 20;
+    display: flex;
+    align-items: stretch;
+    gap: 0.5rem;
+}
+
+.languageSelector {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-height: 40px;
+    padding: 0.45rem 0.65rem;
+    border: 2px solid var(--border-strong);
+    border-radius: 999px;
+    background: var(--surface);
+    color: var(--text);
+    box-shadow: 0 8px 24px var(--shadow-strong);
+    font-size: 0.9rem;
+    font-weight: 800;
+}
+
+.languageSelector select {
+    min-height: 30px;
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    padding: 0.25rem 0.55rem;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+}
+
+.accessibilityToolbar .accessibilityToggle {
+    position: static;
+}
+
+select:focus-visible {
+    outline: 3px solid var(--focus);
+    outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+    .accessibilityToolbar {
+        left: max(0.75rem, env(safe-area-inset-left));
+        right: max(0.75rem, env(safe-area-inset-right));
+        flex-direction: column;
+    }
+
+    .languageSelector,
+    .accessibilityToolbar .accessibilityToggle {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .page {
+        padding-top: calc(max(0.75rem, env(safe-area-inset-top)) + 6.7rem);
     }
 }

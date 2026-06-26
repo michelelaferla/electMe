@@ -13,6 +13,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {getCandidatesForElection, submitBallot} from '../lib/api';
 import type {Candidate, Election} from '../types/domain';
 import {SortableCandidate} from '../components/SortableCandidate';
+import {useLanguage} from '../i18n/LanguageContext';
 
 type Props = { election: Election; onDone: () => void };
 
@@ -28,6 +29,7 @@ function compareCandidates(a: Candidate, b: Candidate) {
 }
 
 export function BallotPage({ election, onDone }: Props) {
+    const {t} = useLanguage();
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -60,7 +62,7 @@ export function BallotPage({ election, onDone }: Props) {
             .forEach(candidate => {
                 const group = grouped.get(candidate.party_id) ?? {
                     partyId: candidate.party_id,
-                    partyName: candidate.party_name || 'Independent / No party',
+                    partyName: candidate.party_name || t('ballot.independent'),
                     partyLogoUrl: candidate.party_logo_url,
                     candidates: []
                 };
@@ -72,7 +74,7 @@ export function BallotPage({ election, onDone }: Props) {
         return [...grouped.values()]
             .map(group => ({...group, candidates: [...group.candidates].sort(compareCandidates)}))
             .sort((a, b) => a.partyName.localeCompare(b.partyName));
-    }, [candidates, selectedIds]);
+    }, [candidates, selectedIds, t]);
 
   function onDragEnd(event: DragEndEvent) {
     const { active, over } = event;
@@ -85,8 +87,11 @@ export function BallotPage({ election, onDone }: Props) {
   }
 
   async function submit() {
-    if (!selectedIds.length) { setError('Select at least one candidate before submitting.'); return; }
-    if (!confirm('Submit final ballot? You cannot change it afterwards.')) return;
+      if (!selectedIds.length) {
+          setError(t('ballot.selectOneError'));
+          return;
+      }
+      if (!confirm(t('ballot.confirmSubmit'))) return;
     setSubmitting(true); setError(null);
     try {
       await submitBallot(election.election_id, selectedIds.map((candidate_id, i) => ({ candidate_id, preference: i + 1 })));
@@ -99,20 +104,17 @@ export function BallotPage({ election, onDone }: Props) {
         <header className="topbar">
             <div>
                 <h1>{election.election_name}</h1>
-                <p>Candidates start unchosen. Add only the candidates you want to vote for, then drag your chosen
-                    candidates into preference order.</p>
+                <p>{t('ballot.instructions')}</p>
             </div>
-            <button type="button" onClick={onDone}>Back</button>
+            <button type="button" onClick={onDone}>{t('ballot.back')}</button>
         </header>
 
     {error && <p className="error">{error}</p>}
 
         <section className="card voteList">
             <section className="chosenSection">
-                <h2>Your chosen preferences</h2>
-                {selected.length === 0 &&
-                    <p className="emptyState">No candidates chosen yet. Tap Choose below to add candidates to your
-                        ballot.</p>}
+                <h2>{t('ballot.chosenPreferences')}</h2>
+                {selected.length === 0 && <p className="emptyState">{t('ballot.noChosen')}</p>}
                 <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
                     <SortableContext items={selectedIds} strategy={verticalListSortingStrategy}>
                         {selected.map((c, i) => <SortableCandidate key={c.candidate_id} candidate={c} index={i} selected
@@ -122,16 +124,15 @@ export function BallotPage({ election, onDone }: Props) {
             </section>
 
             <section className="availableSection">
-                <h2>Available candidates</h2>
-                {availableGroups.length === 0 &&
-                    <p className="emptyState">All candidates have been added to your ballot.</p>}
+                <h2>{t('ballot.availableCandidates')}</h2>
+                {availableGroups.length === 0 && <p className="emptyState">{t('ballot.allAdded')}</p>}
                 {availableGroups.map(group => (
                     <section className="availablePartyGroup" key={group.partyId}>
                         <header className="partyHeader">
                             {group.partyLogoUrl && <img src={group.partyLogoUrl} alt=""/>}
                             <div>
                                 <h3>{group.partyName}</h3>
-                                <span>{group.candidates.length} candidate{group.candidates.length === 1 ? '' : 's'}</span>
+                                <span>{group.candidates.length} {group.candidates.length === 1 ? t('ballot.candidate') : t('ballot.candidates')}</span>
                             </div>
                         </header>
                         {group.candidates.map((c, i) => <SortableCandidate key={c.candidate_id} candidate={c} index={i}
@@ -142,7 +143,7 @@ export function BallotPage({ election, onDone }: Props) {
             </section>
 
             <button type="button" className="submit" disabled={submitting || selectedIds.length === 0}
-                    onClick={submit}>{submitting ? 'Submitting…' : selectedIds.length === 0 ? 'Choose at least one candidate' : 'Submit final ballot'}</button>
+                    onClick={submit}>{submitting ? t('ballot.submitting') : selectedIds.length === 0 ? t('ballot.chooseAtLeastOne') : t('ballot.submitFinal')}</button>
     </section>
   </main>;
 }
