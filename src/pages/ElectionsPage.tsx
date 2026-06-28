@@ -15,7 +15,7 @@ export function ElectionsPage({ onSelect }: Props) {
     useEffect(() => {
         Promise.all([getMyProfile(), getMyElections()]).then(([p, e]) => {
             setProfile(p);
-            setElections(e.filter(election => !election.has_voted));
+            setElections(e);
         }).catch(err => setError(err.message));
     }, []);
 
@@ -25,10 +25,22 @@ export function ElectionsPage({ onSelect }: Props) {
             <button type="button" onClick={() => supabase.auth.signOut()}>{t('elections.signOut')}</button>
         </header>
     {error && <p className="error">{error}</p>}
-        <section className="grid">{elections.map(e => <button key={e.election_id} className="electionCard"
-                                                              onClick={() => onSelect(e)}>
-            <strong>{e.election_name}</strong><span>{e.has_voted ? t('elections.alreadyVoted') : t('elections.availableToVote')}</span>
-    </button>)}</section>
+        <section className="grid">
+            {elections.map(e => {
+                const electionAny = e as any;
+                const id = electionAny.election_id ?? electionAny.Election_ID;
+                const name = electionAny.election_name ?? electionAny.Election_Name;
+
+                return <button
+                    key={id}
+                    className="electionCard"
+                    onClick={() => onSelect(e)}
+                >
+                    <strong>{name}</strong>
+                    <span>{t('elections.availableToVote')}</span>
+                </button>;
+            })}
+        </section>
         {!elections.length && !error && <p className="emptyState">{t('elections.noneAvailable')}</p>}
   </main>;
 }
