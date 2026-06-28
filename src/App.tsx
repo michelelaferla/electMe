@@ -3,6 +3,7 @@ import {useAuth} from './hooks/useAuth';
 import {LoginPage} from './pages/LoginPage';
 import {ElectionsPage} from './pages/ElectionsPage';
 import {BallotPage} from './pages/BallotPage';
+import {VoteConfirmationPage} from './pages/VoteConfirmationPage';
 import type {Election} from './types/domain';
 import {LanguageProvider, useLanguage} from './i18n/LanguageContext';
 import {LanguageSelector} from './components/LanguageSelector';
@@ -13,6 +14,7 @@ function AppContent() {
   const { user, loading } = useAuth();
     const {t} = useLanguage();
   const [selectedElection, setSelectedElection] = useState<Election | null>(null);
+    const [showConfirmation, setShowConfirmation] = useState(false);
     const [highContrast, setHighContrast] = useState(() => localStorage.getItem(CONTRAST_STORAGE_KEY) === 'true');
 
     useEffect(() => {
@@ -39,8 +41,16 @@ function AppContent() {
         <main className="centerPage">{t('app.loading')}</main>
     </>;
     if (!user) return <>{toolbar}<LoginPage/></>;
-    if (selectedElection) return <>{toolbar}<BallotPage election={selectedElection}
-                                                        onDone={() => setSelectedElection(null)}/></>;
+    if (showConfirmation) {
+        return <>{toolbar}<VoteConfirmationPage onBackToElections={() => setShowConfirmation(false)}/></>;
+    }
+    if (selectedElection) {
+        return <>{toolbar}<BallotPage election={selectedElection} onBack={() => setSelectedElection(null)}
+                                      onSubmitted={() => {
+                                          setSelectedElection(null);
+                                          setShowConfirmation(true);
+                                      }}/></>;
+    }
     return <>{toolbar}<ElectionsPage onSelect={setSelectedElection}/></>;
 }
 

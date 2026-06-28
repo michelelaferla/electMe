@@ -512,3 +512,38 @@ select:focus-visible {
         padding-top: calc(max(0.75rem, env(safe-area-inset-top)) + 6.7rem);
     }
 }
+
+
+.confirmationPage {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+}
+
+.confirmationCard {
+    max-width: 560px;
+    width: min(100%, 560px);
+    text-align: center;
+    padding: 2rem;
+}
+
+.confirmationIcon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1rem;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    border: 3px solid var(--border-strong);
+    font-size: 2.4rem;
+    font-weight: 900;
+}
+
+.confirmationCard h1 {
+    margin: 0 0 0.7rem;
+}
+
+.confirmationCard p {
+    margin: 0 auto 1.5rem;
+    max-width: 38rem;
+}

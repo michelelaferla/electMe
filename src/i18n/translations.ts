@@ -47,7 +47,10 @@ export const FALLBACK_TRANSLATIONS: Record<LanguageCode, TranslationDictionary> 
     'ballot.confirmSubmit': 'Submit final ballot? You cannot change it afterwards.',
     'ballot.submitting': 'Submitting…',
     'ballot.chooseAtLeastOne': 'Choose at least one candidate',
-    'ballot.submitFinal': 'Submit final ballot'
+      'ballot.submitFinal': 'Submit final ballot',
+      'confirmation.title': 'Thank you for voting',
+      'confirmation.message': 'Your ballot has been submitted successfully.',
+      'confirmation.backToElections': 'Back to elections'
   },
   mt: {
     'app.loading': 'Qed jitgħabba…',
@@ -88,6 +91,9 @@ export const FALLBACK_TRANSLATIONS: Record<LanguageCode, TranslationDictionary> 
     'ballot.confirmSubmit': 'Tissottometti l-vot finali? Ma tkunx tista’ tbiddlu wara.',
     'ballot.submitting': 'Qed jiġi sottomess…',
     'ballot.chooseAtLeastOne': 'Agħżel mill-inqas kandidat wieħed',
-    'ballot.submitFinal': 'Issottometti l-vot finali'
+      'ballot.submitFinal': 'Issottometti l-vot finali',
+      'confirmation.title': 'Grazzi talli vvutajt',
+      'confirmation.message': 'Il-vot tiegħek ġie sottomess b’suċċess.',
+      'confirmation.backToElections': 'Lura għall-elezzjonijiet'
   }
 };

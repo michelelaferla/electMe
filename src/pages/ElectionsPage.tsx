@@ -12,7 +12,12 @@ export function ElectionsPage({ onSelect }: Props) {
   const [elections, setElections] = useState<Election[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => { Promise.all([getMyProfile(), getMyElections()]).then(([p, e]) => { setProfile(p); setElections(e); }).catch(err => setError(err.message)); }, []);
+    useEffect(() => {
+        Promise.all([getMyProfile(), getMyElections()]).then(([p, e]) => {
+            setProfile(p);
+            setElections(e.filter(election => !election.has_voted));
+        }).catch(err => setError(err.message));
+    }, []);
 
     return <main className="page">
         <header className="topbar">
@@ -20,8 +25,9 @@ export function ElectionsPage({ onSelect }: Props) {
             <button type="button" onClick={() => supabase.auth.signOut()}>{t('elections.signOut')}</button>
         </header>
     {error && <p className="error">{error}</p>}
-    <section className="grid">{elections.map(e => <button key={e.election_id} className="electionCard" disabled={e.has_voted} onClick={() => onSelect(e)}>
-        <strong>{e.election_name}</strong><span>{e.has_voted ? t('elections.alreadyVoted') : t('elections.availableToVote')}</span>
+        <section className="grid">{elections.map(e => <button key={e.election_id} className="electionCard"
+                                                              onClick={() => onSelect(e)}>
+            <strong>{e.election_name}</strong><span>{e.has_voted ? t('elections.alreadyVoted') : t('elections.availableToVote')}</span>
     </button>)}</section>
         {!elections.length && !error && <p className="emptyState">{t('elections.noneAvailable')}</p>}
   </main>;

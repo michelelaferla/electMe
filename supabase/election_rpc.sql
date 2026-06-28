@@ -1,136 +1,101 @@
--- ElectMe Supabase RPC starter.
--- Adjust table/column names to your existing schema before running.
--- Goal: keep ballot anonymous while enforcing one vote per voter per election.
+-- ElectMe Supabase RPCs for the migrated PascalCase schema.
+-- Run this in Supabase SQL Editor after confirming the table/column names match your database.
 
--- Recommended supporting table. This table proves a voter has voted, but does NOT store preferences.
-create table if not exists public.vote_receipts (
-                                                    receipt_id
-                                                    uuid
-                                                    primary
-                                                    key
-                                                    default
-                                                    gen_random_uuid
-(
-),
-    election_id bigint not null references public.elections
-(
-    election_id
-),
-    voter_id bigint not null references public.voters
-(
-    voter_id
-),
-    submitted_at timestamptz not null default now
-(
-),
-    unique
-(
-    election_id,
-    voter_id
-)
-    );
+create
+extension if not exists pgcrypto;
 
--- Recommended anonymous ballot header. No voter_id here.
-create table if not exists public.ballots (
-                                              ballot_id
-                                              uuid
-                                              primary
-                                              key
-                                              default
-                                              gen_random_uuid
-(
-),
-    election_id bigint not null references public.elections
-(
-    election_id
-),
-    submitted_at timestamptz not null default now
-(
-)
-    );
+-- Helpful table defaults used by the submit_ballot function.
+alter table public."Ballot"
+    alter column "Ballot_ID" set default gen_random_uuid();
 
-create table if not exists public.ballot_preferences (
-                                                         ballot_id
-                                                         uuid
-                                                         not
-                                                         null
-                                                         references
-                                                         public
-                                                         .
-                                                         ballots
-(
-                                                         ballot_id
-) on delete cascade,
-    candidate_id bigint not null references public.candidates
-(
-    candidate_id
-),
-    preference int not null check
-(
-    preference >
-    0
-),
-    primary key
-(
-    ballot_id,
-    preference
-),
-    unique
-(
-    ballot_id,
-    candidate_id
-)
-    );
+alter table public."Ballot"
+    alter column "Submitted_Date" set default now();
 
--- This assumes voters.auth_user_id stores auth.uid(). Add this column if missing.
--- alter table public.voters add column if not exists auth_user_id uuid unique references auth.users(id);
+-- Voter profile for the logged-in Supabase Auth user.
+drop function if exists public.get_my_voter_profile();
 
-create or replace function public.get_my_voter_profile()
-returns table(voter_id bigint, full_name text, district_id bigint)
+create function public.get_my_voter_profile()
+    returns table
+            (
+                voter_id    integer,
+                full_name   text,
+                district_id integer
+            )
 language sql
 security definer
 set search_path = public
 as $$
-select v.voter_id,
-       concat_ws(' ', v.first_name, v.surname) as full_name,
-       v.district_id
-from voters v
+select v."Voter_GUID"::integer as voter_id, concat_ws(' ', v."Voter_Name", v."Voter_Surname") as full_name,
+       l."Loc_District_ID"::integer as district_id
+from public."Voter" v
+         left join public."Locality" l
+                   on l."Loc_ID" = v."Voter_Loc_ID"
 where v.auth_user_id = auth.uid();
 $$;
 
-create or replace function public.get_my_valid_elections()
-returns table(election_id bigint, election_name text, election_type text, starts_at timestamptz, ends_at timestamptz, is_valid boolean, has_voted boolean)
+grant
+execute
+on
+function
+public
+.
+get_my_voter_profile
+() to authenticated;
+
+-- Open elections that the logged-in voter has NOT already voted in.
+drop function if exists public.get_my_valid_elections();
+
+create function public.get_my_valid_elections()
+    returns table
+            (
+                election_id   integer,
+                election_name text,
+                election_type text,
+                starts_at     date,
+                ends_at       date,
+                is_valid      boolean,
+                has_voted     boolean
+            )
 language sql
 security definer
 set search_path = public
 as $$
-select e.election_id,
-       e.election_name,
-       e.election_type,
-       e.starts_at,
-       e.ends_at,
-       e.is_valid,
-       exists (
-           select 1 from vote_receipts vr
-                             join voters v on v.voter_id = vr.voter_id
-           where vr.election_id = e.election_id
-             and v.auth_user_id = auth.uid()) as has_voted
-from elections e
-where e.is_valid = true
-  and (e.starts_at is null or e.starts_at <= now())
-  and (e.ends_at is null or e.ends_at >= now())
-order by e.starts_at nulls last, e.election_name;
+select e."Election_ID"::integer as election_id, e."Election_Name"::text as election_name, e."Election_Type"::text as election_type, e."Election_StartDate"::date as starts_at, e."Election_EndDate"::date as ends_at, e."Election_IsActive"::boolean as is_valid, false as has_voted
+from public."Election" e
+         join public."Voter" v
+              on v.auth_user_id = auth.uid()
+where e."Election_IsActive" = true
+  and current_date between e."Election_StartDate" and e."Election_EndDate"
+  and not exists (select 1
+                  from public."Ballot" b
+                  where b."Election_ID" = e."Election_ID"
+                    and b."Voter_ID" = v."Voter_GUID")
+order by e."Election_StartDate" desc, e."Election_Name" asc;
 $$;
 
-create or replace function public.get_candidates_for_my_district(p_election_id bigint)
+grant
+execute
+on
+function
+public
+.
+get_my_valid_elections
+() to authenticated;
+
+-- Candidates for the logged-in voter's locality/district and selected election.
+drop function if exists public.get_candidates_for_my_district(integer);
+
+create function public.get_candidates_for_my_district(
+    p_election_id integer
+)
 returns table(
-  candidate_id bigint,
+                 candidate_id integer,
   first_name text,
   surname text,
   profession text,
   address text,
   photo_url text,
-  party_id bigint,
+                 party_id     integer,
   party_name text,
   party_logo_url text
 )
@@ -138,96 +103,89 @@ language sql
 security definer
 set search_path = public
 as $$
-select c.candidate_id,
-       c.first_name,
-       c.surname,
-       c.profession,
-       c.address,
-       c.photo_url,
-       p.party_id,
-       p.party_name,
-       p.logo_url as party_logo_url
-from voters v
-         join candidates c on c.district_id = v.district_id
-         join parties p on p.party_id = c.party_id
--- If you have a candidate_elections bridge, uncomment this:
--- join candidate_elections ce on ce.candidate_id = c.candidate_id and ce.election_id = p_election_id
-where v.auth_user_id = auth.uid()
-order by p.party_name asc, c.surname asc, c.first_name asc;
+select distinct c."Cand_ID"::integer as candidate_id, c."Cand_FirstName"::text as first_name, c."Cand_LastName"::text as surname, c."Cand_Profession"::text as profession, null::text as address, c."Cand_Logo"::text as photo_url, c."Cand_Party_ID"::integer as party_id, p."Party_Name"::text as party_name, p."Party_Logo"::text as party_logo_url
+from public."Candidate" c
+         join public."Candidate_Election_Locality" cel
+              on cel."Cand_ID" = c."Cand_ID"
+         join public."Voter" v
+              on v.auth_user_id = auth.uid()
+         left join public."Party" p
+                   on p."Party_ID" = c."Cand_Party_ID"
+where cel."Election_ID" = p_election_id
+  and cel."Loc_ID" = v."Voter_Loc_ID"
+order by p."Party_Name", c."Cand_LastName", c."Cand_FirstName";
 $$;
 
-create or replace function public.submit_ballot(p_election_id bigint, p_preferences jsonb)
-returns uuid
+grant
+execute
+on
+function
+public
+.
+get_candidates_for_my_district
+(integer) to authenticated;
+
+-- Submit one ballot row per selected candidate preference.
+drop function if exists public.submit_ballot(integer, jsonb);
+
+create function public.submit_ballot(
+    p_election_id integer,
+    p_preferences jsonb
+)
+    returns jsonb
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
-v_voter_id bigint;
-  v_district_id bigint;
-  v_ballot_id uuid;
-  v_invalid_count int;
+v_voter_guid integer;
+  v_pref
+jsonb;
 begin
-select voter_id, district_id
-into v_voter_id, v_district_id
-from voters
+select "Voter_GUID"::integer
+into v_voter_guid
+from public."Voter"
 where auth_user_id = auth.uid();
 
 if
-v_voter_id is null then
-    raise exception 'Voter profile not found';
-end if;
-
-  if not exists (
-    select 1 from elections e
-    where e.election_id = p_election_id
-      and e.is_valid = true
-      and (e.starts_at is null or e.starts_at <= now())
-      and (e.ends_at is null or e.ends_at >= now())
-  ) then
-    raise exception 'Election is not open';
+v_voter_guid is null then
+    raise exception 'No voter profile linked to this authenticated user';
 end if;
 
   if p_preferences is null or jsonb_array_length(p_preferences) = 0 then
-    raise exception 'At least one preference is required';
+    raise exception 'Select at least one candidate before submitting';
 end if;
 
-  -- Enforce one vote first. Unique constraint blocks race conditions.
-insert into vote_receipts(election_id, voter_id)
-values (p_election_id, v_voter_id);
-
--- Validate candidate IDs: must belong to same voter district.
-select count(*)
-into v_invalid_count
-from jsonb_to_recordset(p_preferences) as x(candidate_id bigint, preference int)
-         left join candidates c on c.candidate_id = x.candidate_id and c.district_id = v_district_id
-where c.candidate_id is null
-   or x.preference is null
-   or x.preference <= 0;
-
-if
-v_invalid_count > 0 then
-    raise exception 'Invalid ballot preferences';
+  if
+exists (
+    select 1
+    from public."Ballot"
+    where "Voter_ID" = v_voter_guid
+      and "Election_ID" = p_election_id
+  ) then
+    raise exception 'You have already submitted a ballot for this election';
 end if;
 
-insert into ballots(election_id)
-values (p_election_id) returning ballot_id
-into v_ballot_id;
+for v_pref in
+select *
+from jsonb_array_elements(p_preferences) loop
+    insert
+into public."Ballot" ("Voter_ID",
+                      "Election_ID",
+                      "Cand_ID",
+                      "Preference",
+                      "Submitted_Date")
+values (
+    v_voter_guid, p_election_id, (v_pref->>'candidate_id'):: integer, (v_pref->>'preference'):: integer, now()
+    );
+end loop;
 
-insert into ballot_preferences(ballot_id, candidate_id, preference)
-select v_ballot_id, candidate_id, preference
-from jsonb_to_recordset(p_preferences) as x(candidate_id bigint, preference int)
-order by preference;
-
-return v_ballot_id;
-exception
-  when unique_violation then
-    raise exception 'You have already voted in this election';
+return jsonb_build_object(
+        'success', true,
+        'message', 'Ballot submitted successfully'
+       );
 end;
 $$;
 
-revoke all on function public.submit_ballot(bigint, jsonb) from public;
-grant execute on function public.submit_ballot(bigint, jsonb) to authenticated;
-grant execute on function public.get_my_voter_profile() to authenticated;
-grant execute on function public.get_my_valid_elections() to authenticated;
-grant execute on function public.get_candidates_for_my_district(bigint) to authenticated;
+grant execute on function public.submit_ballot
+(integer, jsonb) to authenticated;

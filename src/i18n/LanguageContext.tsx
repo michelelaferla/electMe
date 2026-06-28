@@ -1,6 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { supabase } from '../lib/supabase';
-import { FALLBACK_TRANSLATIONS, SUPPORTED_LANGUAGES, type LanguageCode, type TranslationDictionary } from './translations';
+import {createContext, type ReactNode, useContext, useEffect, useMemo, useState} from 'react';
+import {supabase} from '../lib/supabase';
+import {
+  FALLBACK_TRANSLATIONS,
+  type LanguageCode,
+  SUPPORTED_LANGUAGES,
+  type TranslationDictionary
+} from './translations';
 
 type LanguageContextValue = {
   language: LanguageCode;
@@ -23,11 +28,7 @@ function getInitialLanguage(): LanguageCode {
 
 function interpolate(value: string, params?: Record<string, string | number>) {
   if (!params) return value;
-
-  return Object.entries(params).reduce(
-      (text, [key, replacement]) => text.split(`{${key}}`).join(String(replacement)),
-      value
-  );
+  return Object.entries(params).reduce((text, [key, replacement]) => text.split(`{${key}}`).join(String(replacement)), value);
 }
 
 export function LanguageProvider({ children }: { children: ReactNode }) {
